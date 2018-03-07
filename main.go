@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"strings"
@@ -11,11 +12,46 @@ import (
 )
 
 const (
-	app_name    string = "urdudict"
-	app_usage   string = "Urdu dict in your terminal"
-	app_version        = "0.0.1"
-	rekhta             = "https://www.rekhta.org/urdudictionary/?lang=1&keyword="
+	app_name         string = "urdudict"
+	app_usage        string = "Urdu dict in your terminal"
+	app_version             = "0.1.0"
+	rekhta                  = "https://www.rekhta.org/urdudictionary/?lang=1&keyword="
+	results_template string = `
+Found meanings:
+~~~~~~~~~~~~~~~
+{{range $key, $value := .Meanings }}{{ $value.Word }} - {{ $value.Meaning }}
+{{end}}
+
+Dictionary meanings:
+~~~~~~~~~~~~~~~~~~~~
+{{ .Dictionary.Word }}
+{{ .Dictionary.Meaning }}
+
+
+Did you mean
+~~~~~~~~~~~~
+{{range $value := .Word_suggestions }} {{ $value }} {{end}}
+
+Source: rekhta.org
+
+`
 )
+
+type MeaningPairs struct {
+	Word    string
+	Meaning string
+}
+
+type DictionaryMeaning struct {
+	Word    string
+	Meaning string
+}
+
+type Results struct {
+	Meanings         []MeaningPairs
+	Dictionary       DictionaryMeaning
+	Word_suggestions []string
+}
 
 type TooManyArgsError struct {
 	c *cli.Context
