@@ -14,7 +14,7 @@ import (
 const (
 	app_name         string = "urdudict"
 	app_usage        string = "Urdu dict in your terminal"
-	app_version             = "0.1.0"
+	app_version             = "0.2.0"
 	rekhta                  = "https://www.rekhta.org/urdudictionary/?lang=1&keyword="
 	results_template string = `{{ if .Meanings }}
 Found meanings:
