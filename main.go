@@ -19,18 +19,19 @@ const (
 	results_template string = `{{ if .Meanings }}
 Found meanings:
 ~~~~~~~~~~~~~~~
-{{range $key, $value := .Meanings }}{{ $value.Word }} - {{ $value.Meaning }} {{end}}
+{{range $key, $value := .Meanings }}
+{{ $value.Word }} - {{ $value.Meaning }} {{end}}
 {{ if .Dictionary.Word }}
 Dictionary meanings:
 ~~~~~~~~~~~~~~~~~~~~
 {{ .Dictionary.Word }}
-{{ .Dictionary.Meaning }}{{ end }}
+{{ .Dictionary.Meaning }}
+{{ end }}{{ if .Word_suggestions }}
 Did you mean
 ~~~~~~~~~~~~
-{{range $value := .Word_suggestions }} {{ $value }} {{end}}
+{{range $value := .Word_suggestions }} {{ $value }} {{end}} {{ end }}
 
 Source: rekhta.org
-
 {{ else }}No meanings found{{ end }}
 `
 )
