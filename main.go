@@ -16,24 +16,22 @@ const (
 	app_usage        string = "Urdu dict in your terminal"
 	app_version             = "0.1.0"
 	rekhta                  = "https://www.rekhta.org/urdudictionary/?lang=1&keyword="
-	results_template string = `
+	results_template string = `{{ if .Meanings }}
 Found meanings:
 ~~~~~~~~~~~~~~~
-{{range $key, $value := .Meanings }}{{ $value.Word }} - {{ $value.Meaning }}
-{{end}}
-
+{{range $key, $value := .Meanings }}{{ $value.Word }} - {{ $value.Meaning }} {{end}}
+{{ if .Dictionary.Word }}
 Dictionary meanings:
 ~~~~~~~~~~~~~~~~~~~~
 {{ .Dictionary.Word }}
-{{ .Dictionary.Meaning }}
-
-
+{{ .Dictionary.Meaning }}{{ end }}
 Did you mean
 ~~~~~~~~~~~~
 {{range $value := .Word_suggestions }} {{ $value }} {{end}}
 
 Source: rekhta.org
 
+{{ else }}No meanings found{{ end }}
 `
 )
 
@@ -53,17 +51,25 @@ type Results struct {
 	Word_suggestions []string
 }
 
-type TooManyArgsError struct {
+type InvalidArgsError struct {
 	c *cli.Context
 }
 
-func (t TooManyArgsError) Error() string {
-	return fmt.Sprintf("Enter only 1 word. Received %d (%v)", len(t.c.Args()), strings.Join(t.c.Args(), ", "))
+func (t InvalidArgsError) Error() string {
+	return fmt.Sprintf("Invalid arguments: Received %d (%v)", len(t.c.Args()), strings.Join(t.c.Args(), ", "))
 }
 
 func run(c *cli.Context) error {
-	if c.NArg() > 1 {
-		return &TooManyArgsError{c}
+	if c.NArg() == 0 || c.NArg() > 2 {
+		return &InvalidArgsError{c}
+	}
+
+	var show_dict bool
+	// true if asked for dict meaning
+	if c.BoolT("hide_dictionary") {
+		show_dict = false
+	} else {
+		show_dict = true
 	}
 
 	query_word := c.Args().First()
@@ -85,10 +91,13 @@ func run(c *cli.Context) error {
 		})
 
 	// Dictionary meaning
-	heading := doc.Find("div.meaningDetailContainer ul li div div span div2 span").Text()
-	description := doc.Find("div.meaningDetailContainer ul li div div span div2 p").Text()
-
-	res.Dictionary = DictionaryMeaning{Word: heading, Meaning: description}
+	if show_dict == true {
+		heading := doc.Find("div.meaningDetailContainer ul li div div span div2 span").Text()
+		description := doc.Find("div.meaningDetailContainer ul li div div span div2 p").Text()
+		res.Dictionary = DictionaryMeaning{Word: heading, Meaning: description}
+	} else {
+		res.Dictionary = DictionaryMeaning{}
+	}
 
 	// Did you mean
 	doc.Find("div.search_word ul li").Each(
@@ -118,6 +127,13 @@ func main() {
 	app.Usage = app_usage
 	app.Version = app_version
 	app.Action = run
+	app.Flags = []cli.Flag{
+		cli.BoolTFlag{
+			Name:  "hide_dictionary, hd",
+			Usage: "set to display the dictionary meaning",
+		},
+	}
+
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
