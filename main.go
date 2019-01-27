@@ -18,14 +18,14 @@ const (
 	rekhta                 = "https://www.rekhta.org/urdudictionary/?lang=1&keyword="
 	resultsTemplate string = `{{ if .Meanings }}Found meaning
 ~~~~~~~~~~~~~
-{{range $key, $value := .Meanings }}{{ $value.Word }} - {{ $value.Meaning }} {{end}}
-{{ if .WordSuggestions }}
+{{range $key, $value := .Meanings }}{{ $value.Word }} - {{ $value.Meaning }} {{end}}{{ else }}No meanings found{{ end }}{{ if .WordSuggestions }}
+
 Did you mean
 ~~~~~~~~~~~~
-{{range $value := .WordSuggestions }}{{ $value }} {{end}} {{ end }}
+{{range $value := .WordSuggestions }}{{ $value }} {{end}}
 
-Source: rekhta.org
-{{ else }}No meanings found{{ end }}`
+Source: rekhta.org{{ end }}
+`
 )
 
 type MeaningPairs struct {
@@ -62,10 +62,14 @@ func run(c *cli.Context) error {
 
 	// Found Meanings
 	// only single word meaning in v0.3
-	res.Meanings = []MeaningPairs{
-		MeaningPairs{
-			Word:    fmt.Sprintf("%s (%s)", strings.TrimSpace(doc.Find(".dicSrchWord").Text()), doc.Find(".dicSrchMnngUrdu").Text()),
-			Meaning: doc.Find(".dicSrchWrdSyno").Text()}}
+	meaning := doc.Find(".dicSrchWrdSyno").Text()
+	if meaning != "" {
+		res.Meanings = []MeaningPairs{
+			MeaningPairs{
+				Word:    fmt.Sprintf("%s (%s)", strings.TrimSpace(doc.Find(".dicSrchWord").Text()), doc.Find(".dicSrchMnngUrdu").Text()),
+				Meaning: meaning,
+			}}
+	}
 
 	// Did you mean
 	doc.Find("a.didUMeanWrd").Each(
