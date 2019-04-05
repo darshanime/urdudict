@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -17,8 +18,8 @@ const (
 	appVersion             = "0.3.0"
 	rekhta                 = "https://www.rekhta.org/urdudictionary/?lang=1&keyword="
 	resultsTemplate string = `{{ if .Meanings }}Found meaning
-~~~~~~~~~~~~~
-{{range $key, $value := .Meanings }}{{ $value.Word }} - {{ $value.Meaning }} {{end}}{{ else }}No meanings found{{ end }}{{ if .WordSuggestions }}
+~~~~~~~~~~~~~{{range $key, $value := .Meanings }}
+{{ $value.Word }} - {{ $value.Meaning }} {{end}}{{ else }}No meanings found{{ end }}{{ if .WordSuggestions }}
 
 Did you mean
 ~~~~~~~~~~~~
@@ -53,23 +54,42 @@ func run(c *cli.Context) error {
 
 	queryWord := c.Args().First()
 
-	doc, err := goquery.NewDocument(rekhta + queryWord)
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", rekhta+queryWord, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:66.0) Gecko/20100101 Firefox/66.0")
+	response, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		log.Fatalf("status code error: %d %s", response.StatusCode, response.Status)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(response.Body)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	res := Results{}
 
-	// Found Meanings
-	// only single word meaning in v0.3
-	meaning := doc.Find(".dicSrchWrdSyno").Text()
-	if meaning != "" {
-		res.Meanings = []MeaningPairs{
-			MeaningPairs{
-				Word:    fmt.Sprintf("%s (%s)", strings.TrimSpace(doc.Find(".dicSrchWord").Text()), doc.Find(".dicSrchMnngUrdu").Text()),
-				Meaning: meaning,
-			}}
-	}
+	doc.Find(".rekhtaDicSrchWord").Each(
+		func(i int, s *goquery.Selection) {
+			word := s.Find("h4").Text()
+			hindi := s.Find(".dicSrchMnngUrdu").Text()
+			meanings := []string{}
+			s.Find(".dicSrchWrdSyno").Each(
+				func(i int, s *goquery.Selection) {
+					meanings = append(meanings, s.Text())
+				})
+			res.Meanings = append(res.Meanings, MeaningPairs{
+				Word:    fmt.Sprintf("%s (%s)", strings.TrimSpace(word), hindi),
+				Meaning: strings.TrimSpace(strings.Join(meanings, " | ")),
+			})
+		})
 
 	// Did you mean
 	doc.Find("a.didUMeanWrd").Each(
