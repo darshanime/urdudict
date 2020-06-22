@@ -15,7 +15,7 @@ import (
 const (
 	appName         string = "urdudict"
 	appUsage        string = "Urdu dict in your terminal"
-	appVersion             = "0.4.0"
+	appVersion             = "v0.5.0"
 	rekhta                 = "https://www.rekhta.org/urdudictionary/?lang=1&keyword="
 	resultsTemplate string = `{{ if .Meanings }}Found meaning
 ~~~~~~~~~~~~~{{range $key, $value := .Meanings }}
