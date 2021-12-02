@@ -26,7 +26,7 @@ Head over to the downloads
 
 Get it using:
 ```
-$ go get github.com/darshanime/urdudict
+go install github.com/darshanime/urdudict@latest
 ```
 
 Binaries will be put up soon
